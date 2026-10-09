@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Competitor Radar</title>
+<style>
+*{box-sizing:border-box}
+
+:root{
+  --bg:#f6f8fc;
+  --surface:#ffffff;
+  --surface-soft:#f8fafc;
+  --border:#e7ebf2;
+  --text:#172033;
+  --muted:#667085;
+  --primary:#4f46e5;
+  --primary-dark:#4338ca;
+  --sidebar:#101827;
+  --sidebar-hover:#26344b;
+  --green:#15803d;
+  --green-bg:#dcfce7;
+  --yellow:#a16207;
+  --yellow-bg:#fef3c7;
+  --red:#b91c1c;
+  --red-bg:#fee2e2;
+}
+
+html,body{
+  margin:0;
+  min-height:100%;
+}
+
+body{
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  font-size:14px;
+  -webkit-font-smoothing:antialiased;
+}
+
+button,input,select{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+.app{
+  display:flex;
+  min-height:100vh;
+}
+
+/* ---------- SIDEBAR ---------- */
+
+.sidebar{
+  width:250px;
+  background:var(--sidebar);
+  color:white;
+  padding:24px 14px;
+  position:fixed;
+  inset:0 auto 0 0;
+  box-shadow:4px 0 20px rgba(15,23,42,.08);
+}
+
+.logo{
+  font-size:20px;
+  line-height:1.25;
+  font-weight:800;
+  letter-spacing:-.4px;
+  padding:0 12px 30px;
+}
+
+.section{
+  font-size:10px;
+  letter-spacing:.08em;
+  color:#8996aa;
+  font-weight:800;
+  margin:23px 12px 9px;
+  text-transform:uppercase;
+}
+
+.nav{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:11px 12px;
+  border-radius:9px;
+  color:#cbd5e1;
+  margin:3px 0;
+  cursor:pointer;
+  font-size:14px;
+  font-weight:500;
+  transition:.15s ease;
+}
+
+.nav:hover{
+  background:#1b283b;
+  color:white;
+}
+
+.nav.active{
+  background:var(--sidebar-hover);
+  color:white;
+  font-weight:650;
+  box-shadow:inset 3px 0 0 #6366f1;
+}
+
+.status{
+  position:absolute;
+  bottom:20px;
+  left:20px;
+  color:#86efac;
+  font-size:11px;
+  font-weight:600;
+}
+
+/* ---------- MAIN ---------- */
+
+.main{
+  margin-left:250px;
+  width:calc(100% - 250px);
+  padding:32px 34px 45px;
+}
+
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  margin-bottom:26px;
+}
+
+h1{
+  margin:0;
+  font-size:28px;
+  line-height:1.2;
+  letter-spacing:-.7px;
+  font-weight:750;
+}
+
+.sub{
+  color:var(--muted);
+  margin-top:6px;
+  font-size:13px;
+  line-height:1.45;
+}
+
+.actions{
+  display:flex;
+  gap:10px;
+}
+
+/* ---------- BUTTONS ---------- */
+
+.btn{
+  border-radius:9px;
+  padding:9px 15px;
+  font-weight:650;
+  font-size:13px;
+  transition:.15s ease;
+}
+
+.primary{
+  background:var(--primary);
+  color:white;
+  border:1px solid var(--primary);
+  box-shadow:0 2px 5px rgba(79,70,229,.18);
+}
+
+.primary:hover{
+  background:var(--primary-dark);
+  transform:translateY(-1px);
+}
+
+.secondary{
+  background:white;
+  border:1px solid #d9e0ea;
+  color:#344054;
+}
+
+.secondary:hover{
+  background:#f8fafc;
+  border-color:#cbd5e1;
+}
+
+.danger{
+  background:var(--red-bg);
+  color:var(--red);
+  border:0;
+}
+
+/* ---------- METRIC CARDS ---------- */
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px;
+  margin-bottom:20px;
+}
+
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:19px 20px;
+  box-shadow:0 2px 7px rgba(15,23,42,.035);
+  transition:.15s ease;
+}
+
+.card:hover{
+  transform:translateY(-1px);
+  box-shadow:0 5px 16px rgba(15,23,42,.06);
+}
+
+.label{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:600;
+  letter-spacing:.01em;
+}
+
+.value{
+  font-size:27px;
+  line-height:1;
+  font-weight:750;
+  letter-spacing:-.6px;
+  margin-top:10px;
+}
+
+/* ---------- GRID / PANELS ---------- */
+
+.grid{
+  display:grid;
+  grid-template-columns:1.9fr 1fr;
+  gap:18px;
+}
+
+.panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:20px;
+  margin-bottom:18px;
+  box-shadow:0 2px 7px rgba(15,23,42,.025);
+}
+
+.panel h2{
+  font-size:16px;
+  letter-spacing:-.15px;
+  margin:0 0 15px;
+  font-weight:700;
+}
+
+/* ---------- ROWS ---------- */
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:15px;
+  padding:14px 0;
+  border-bottom:1px solid #eef1f5;
+}
+
+.row:last-child{
+  border-bottom:0;
+}
+
+.row b{
+  font-weight:700;
+}
+
+/* ---------- BADGES ---------- */
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  padding:4px 8px;
+  border-radius:20px;
+  font-size:10px;
+  line-height:1;
+  font-weight:750;
+  letter-spacing:.02em;
+  background:#eef2ff;
+  color:#4338ca;
+}
+
+.green{
+  background:var(--green-bg);
+  color:var(--green);
+}
+
+.yellow{
+  background:var(--yellow-bg);
+  color:var(--yellow);
+}
+
+.red{
+  background:var(--red-bg);
+  color:var(--red);
+}
+
+/* ---------- TABLES ---------- */
+
+.toolbar{
+  display:flex;
+  gap:10px;
+  margin-bottom:16px;
+}
+
+input,select{
+  background:white;
+  border:1px solid #d9e0ea;
+  border-radius:8px;
+  padding:10px 12px;
+  outline:none;
+  color:#344054;
+  font-size:13px;
+}
+
+input{
+  flex:1;
+}
+
+input::placeholder{
+  color:#98a2b3;
+}
+
+input:focus,
+select:focus{
+  border-color:#818cf8;
+  box-shadow:0 0 0 3px rgba(99,102,241,.10);
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:white;
+}
+
+th,td{
+  text-align:left;
+  padding:13px 14px;
+  border-bottom:1px solid #edf0f4;
+  font-size:12.5px;
+}
+
+th{
+  color:#667085;
+  background:#f8fafc;
+  font-size:11px;
+  font-weight:750;
+  text-transform:uppercase;
+  letter-spacing:.035em;
+}
+
+td{
+  color:#344054;
+}
+
+td b{
+  color:#172033;
+  font-weight:650;
+}
+
+tr:hover td{
+  background:#fafbff;
+}
+
+.table-wrap{
+  overflow:auto;
+  border:1px solid var(--border);
+  border-radius:10px;
+}
+
+/* ---------- EMPTY / LOADING ---------- */
+
+.empty{
+  text-align:center;
+  color:var(--muted);
+  padding:45px 20px;
+  font-size:13px;
+}
+
+.loading{
+  text-align:center;
+  padding:30px;
+  color:var(--muted);
+}
+
+/* ---------- LINKS ---------- */
+
+a{
+  color:#4f46e5;
+}
+
+a:hover{
+  color:#3730a3;
+}
+
+/* ---------- MODAL ---------- */
+
+.modal-bg{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.48);
+  backdrop-filter:blur(2px);
+  align-items:center;
+  justify-content:center;
+  z-index:20;
+}
+
+.modal{
+  background:white;
+  border-radius:13px;
+  padding:25px;
+  width:450px;
+  max-width:92%;
+  box-shadow:0 20px 60px rgba(15,23,42,.22);
+}
+
+.modal h2{
+  margin-top:0;
+  margin-bottom:20px;
+  font-size:19px;
+}
+
+.form{
+  display:grid;
+  gap:13px;
+}
+
+.form label{
+  display:block;
+  font-size:11px;
+  font-weight:700;
+  color:#475467;
+  margin-bottom:5px;
+}
+
+.form input,
+.form select{
+  width:100%;
+}
+
+.modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:20px;
+}
+
+/* ---------- TOAST ---------- */
+
+.toast{
+  position:fixed;
+  right:25px;
+  bottom:25px;
+  background:#172033;
+  color:white;
+  padding:12px 17px;
+  border-radius:9px;
+  display:none;
+  z-index:30;
+  font-size:13px;
+  font-weight:600;
+  box-shadow:0 8px 25px rgba(15,23,42,.18);
+}
+
+/* ---------- RESPONSIVE ---------- */
+
+@media(max-width:1000px){
+  .sidebar{
+    width:210px;
+  }
+
+  .main{
+    margin-left:210px;
+    width:calc(100% - 210px);
+    padding:25px;
+  }
+
+  .cards{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+  .grid{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:700px){
+  .sidebar{
+    width:190px;
+  }
+
+  .main{
+    margin-left:190px;
+    width:calc(100% - 190px);
+    padding:20px;
+  }
+
+  .top{
+    flex-direction:column;
+    gap:15px;
+  }
+
+  .cards{
+    grid-template-columns:1fr;
+  }
+}
+.ui-v2-marker{display:none}
+body{background:radial-gradient(1200px 500px at 85% -10%,#e9ecff 0%,rgba(246,248,252,0) 60%),#f6f8fc}
+.sidebar{background:linear-gradient(180deg,#0f172a 0%,#111c33 100%);box-shadow:6px 0 30px rgba(15,23,42,.12)}
+.logo{background:linear-gradient(90deg,#ffffff,#c7d2fe);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:19px}
+.section{color:#6b7a92}
+.nav{border-radius:10px;padding:11px 14px;color:#b8c3d6}
+.nav:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav.active{background:linear-gradient(90deg,rgba(99,102,241,.30),rgba(99,102,241,.08));box-shadow:inset 3px 0 0 #818cf8;color:#fff}
+.status{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);padding:6px 12px;border-radius:999px;left:16px}
+h1{font-size:30px;letter-spacing:-.8px}
+.btn{border-radius:10px;padding:10px 16px}
+.primary{background:linear-gradient(135deg,#6366f1,#4f46e5);border-color:#4f46e5;box-shadow:0 6px 16px rgba(79,70,229,.28)}
+.primary:hover{background:linear-gradient(135deg,#5b5ef0,#4338ca)}
+.secondary{background:#fff;border-color:#e2e8f0;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+.cards{gap:18px}
+.cards .card{position:relative;padding:20px 80px 20px 24px;border-radius:16px;border:1px solid #e8ecf4;box-shadow:0 4px 14px rgba(15,23,42,.05);overflow:hidden}
+.cards .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,#6366f1)}
+.cards .card::after{content:var(--icon,"●");position:absolute;right:18px;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--tint,#eef2ff)}
+.cards .card:nth-child(1){--accent:#6366f1;--tint:#eef2ff;--icon:"🏢"}
+.cards .card:nth-child(2){--accent:#10b981;--tint:#d1fae5;--icon:"📄"}
+.cards .card:nth-child(3){--accent:#f59e0b;--tint:#fef3c7;--icon:"🔍"}
+.cards .card:nth-child(4){--accent:#ec4899;--tint:#fce7f3;--icon:"🗂️"}
+.label{text-transform:uppercase;letter-spacing:.06em;font-size:11px;font-weight:700}
+.value{font-size:32px;margin-top:8px}
+.panel{border-radius:16px;border:1px solid #e8ecf4;box-shadow:0 4px 14px rgba(15,23,42,.04);padding:22px}
+.panel h2{display:flex;align-items:center;gap:10px;font-size:16.5px}
+.panel h2::before{content:"";width:4px;height:18px;border-radius:4px;background:linear-gradient(180deg,#6366f1,#8b5cf6)}
+.row{padding:13px 0}
+.badge{padding:5px 10px;font-size:10.5px}
+.table-wrap{border-radius:12px;border-color:#e8ecf4}
+th{background:#f8fafc;color:#64748b}
+tr:hover td{background:#f8faff}
+input:focus,select:focus{border-color:#818cf8;box-shadow:0 0 0 4px rgba(99,102,241,.12)}
+.modal{border-radius:18px}
+.toast{border-radius:12px;background:#0f172a}
+div.empty{border:1.5px dashed #e2e8f0;border-radius:14px;background:#fafbff}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#d5dbe7;border-radius:10px;border:2px solid #f6f8fc}
+.tc-card{border:1px solid #e8ecf4;border-radius:14px;margin-bottom:14px;background:#fff;overflow:hidden}
+.tc-card>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f8fafc}
+.tc-card>summary::-webkit-details-marker{display:none}
+.tc-card>summary::after{content:"▾";margin-left:6px;color:#98a2b3;font-size:12px;transition:transform .15s}
+.tc-card:not([open])>summary::after{transform:rotate(-90deg)}
+.tc-avatar{width:36px;height:36px;border-radius:10px;background:#eef2ff;color:#4338ca;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
+.tc-name{font-weight:750;font-size:14.5px}
+.tc-pills{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.tc-body{padding:2px 16px 8px}
+.tc-item{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid #f1f3f7}
+.tc-item:last-child{border-bottom:0}
+.tc-dot{width:8px;height:8px;border-radius:50%;margin-top:7px;flex:none}
+.tc-title{font-weight:650;color:#172033;text-decoration:none}
+.tc-title:hover{color:#4f46e5;text-decoration:underline}
+.tc-type{font-size:11px;color:var(--muted);background:#f2f4f7;border-radius:6px;padding:2px 7px;margin-left:8px;font-weight:600;white-space:nowrap}
+.tc-chip{display:inline-block;font-size:12px;border-radius:7px;padding:3px 9px;margin:6px 6px 0 0;line-height:1.45;word-break:break-word}
+.tc-add{background:#dcfce7;color:#166534}
+.tc-rem{background:#fee2e2;color:#991b1b}
+.tc-open{flex:none;font-size:12px;font-weight:700;text-decoration:none;padding:5px 11px;border:1px solid #e0e7ff;border-radius:8px;color:#4f46e5;background:#f5f7ff;white-space:nowrap}
+.tc-open:hover{background:#eef2ff;color:#3730a3}
+.tc-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 2px 0;color:var(--muted);font-size:12.5px;font-weight:600}
+.ms-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ms-tile{position:relative;border-radius:14px;padding:16px;border:1px solid transparent;transition:.15s;cursor:pointer;min-height:118px;display:flex;flex-direction:column;justify-content:flex-end}
+.ms-tile:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(15,23,42,.08)}
+.ms-ico{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;background:rgba(255,255,255,.75)}
+.ms-num{font-size:32px;font-weight:800;letter-spacing:-.8px;line-height:1}
+.ms-lbl{margin-top:8px;font-size:12.5px;font-weight:700}
+.ms-sub{margin-top:2px;font-size:11.5px;opacity:.75;font-weight:600}
+.ms-green{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-color:#a7f3d0;color:#065f46}
+.ms-blue{background:linear-gradient(135deg,#eef2ff,#e0e7ff);border-color:#c7d2fe;color:#3730a3}
+.ms-amber{background:linear-gradient(135deg,#fffbeb,#fef3c7);border-color:#fde68a;color:#92400e}
+.ms-red{background:linear-gradient(135deg,#fef2f2,#fee2e2);border-color:#fecaca;color:#991b1b}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<aside class="sidebar">
+  <div class="logo">⚡ COMPETITOR RADAR</div>
+
+  <div class="section">Main</div>
+  <div class="nav active" data-page="dashboard">🏠 Dashboard</div>
+  <div class="nav" data-page="competitors">🏢 Competitors</div>
+  <div class="nav" data-page="content">📄 Tracked Content</div>
+  <div class="nav" data-page="scans">🔍 Scan Runs</div>
+
+  <div class="section">Intelligence</div>
+  <div class="nav" data-page="changes">🔥 Changes</div>
+  <div class="nav" data-page="alerts">🚨 Alerts</div>
+
+  <div class="section">Management</div>
+  <div class="nav" data-page="categories">🗂️ Categories</div>
+  <div class="nav" data-page="settings">⚙️ Settings</div>
+
+  <div class="status">● Supabase Connected</div>
+</aside>
+
+<main class="main">
+  <div class="top">
+    <div>
+      <h1 id="pageTitle">Dashboard</h1>
+      <div class="sub" id="pageSub">Competitive intelligence overview</div>
+    </div>
+    <div class="actions">
+      <span id="lastUpdated" class="sub" style="align-self:center;margin:0 6px 0 0"></span><button id="refreshBtn" class="btn secondary" onclick="refreshNow(true)">↻ Refresh</button>
+      <button class="btn primary" onclick="masterScan()">▶ Run Master Scan</button>
+    </div>
+  </div>
+
+  <div id="app"></div>
+</main>
+</div>
+
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h2>Add Competitor</h2>
+    <div class="form">
+      <div><label>Competitor Name</label><input id="newName" placeholder="e.g. Raise"></div>
+      <div><label>Website URL</label><input id="newUrl" placeholder="https://example.com"></div>
+      <div><label>Category</label><select id="newCategory"></select></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="addCompetitor()">Add Competitor</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let state={
+  dashboard:{},
+  competitors:[],
+  categories:[],
+  courses:[],
+  scans:[],
+  changes:[]
+};
+
+const titles={
+ dashboard:["Dashboard","Competitive intelligence overview"],
+ competitors:["Competitors","Monitor and scan your competitors"],
+ content:["Tracked Content","All tracked competitor content"],
+ scans:["Scan Runs","Historical scanning activity"],
+ changes:["Changes","Detected competitive changes"],
+ alerts:["Alerts","Recent intelligence alerts"],
+ categories:["Categories","Configured monitoring categories"],
+ settings:["Settings","Competitor Radar configuration"]
+};
+
+function esc(v){
+  return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+}
+
+function modCount(x){ return Number(x.modified_courses ?? x.change_details?.modified?.length ?? 0); }
+
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.style.display="block";
+  setTimeout(()=>t.style.display="none",3000);
+}
+
+async function api(url,options={}){
+  const r=await fetch(url,options);
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(data.error||"Request failed");
+  return data;
+}
+
+async function loadAll(){
+  try{
+    const [d,cats,comps,courses,scans,changes]=await Promise.all([
+      api("/api/dashboard?_="+Date.now()),
+      api("/api/categories?_="+Date.now()),
+      api("/api/competitors?_="+Date.now()),
+      api("/api/courses?_="+Date.now()),
+      api("/api/scan-runs?_="+Date.now()),
+      api("/api/changes?_="+Date.now())
+    ]);
+
+    state.dashboard=d.stats||{};
+    state.categories=cats.categories||[];
+    state.competitors=comps.competitors||[];
+    state.courses=courses.courses||[];
+    state.scans=scans.scanRuns||[];
+    state.changes=changes.changes||[];
+    try{ const cc=await api("/api/content-changes?_="+Date.now()); state.contentChanges=cc.changes||[]; }catch(_){ state.contentChanges=[]; }
+    try{ const d0=new Date(); d0.setHours(0,0,0,0); const tc=await api("/api/todays-changes?since="+encodeURIComponent(d0.toISOString())+"&_="+Date.now()); state.todayChanges=tc; }catch(_){ state.todayChanges={new:[],modified:[]}; }
+
+    render();
+    return true;
+  }catch(e){
+    toast("❌ Could not load dashboard: "+e.message);
+    console.error(e);
+    return false;
+  }
+}
+
+function render(){
+  const page=document.querySelector(".nav.active")?.dataset.page||"dashboard";
+  renderPage(page);
+}
+
+function renderPage(page){
+  document.getElementById("pageTitle").textContent=titles[page][0];
+  document.getElementById("pageSub").textContent=titles[page][1];
+
+  if(page==="dashboard") dashboard();
+  if(page==="competitors") competitors();
+  if(page==="content") content();
+  if(page==="scans") scans();
+  if(page==="changes") changes();
+  if(page==="alerts") alerts();
+  if(page==="categories") categories();
+  if(page==="settings") settings();
+}
+
+function dashboard(){
+  const s=state.dashboard;
+
+  const todayScans = state.scans.filter(x =>
+    isToday(x.created_at || x.executed_at)
+  );
+
+  const todayChanges = todayScans.filter(x =>
+    Number(x.new_courses_added || 0) > 0 ||
+    modCount(x) > 0
+  );
+
+  const successfulScans = todayScans.filter(x =>
+    String(x.status || "").toUpperCase() === "SUCCESS"
+  ).length;
+
+  const failedScans = todayScans.filter(x =>
+    String(x.status || "").toUpperCase() === "FAILED"
+  ).length;
+
+  const newToday = todayScans.reduce(
+    (sum,x)=>sum + Number(x.new_courses_added || 0),0
+  );
+
+  const modifiedToday = todayScans.reduce(
+    (sum,x)=>sum + modCount(x),0
+  );
+
+  document.getElementById("app").innerHTML=`
+    <div class="cards">
+      <div class="card">
+        <div class="label">Active Competitors</div>
+        <div class="value">${s.competitors??0}</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Tracked Content</div>
+        <div class="value">${s.trackedContent??0}</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Scan Runs</div>
+        <div class="value">${s.scanRuns??0}</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Categories</div>
+        <div class="value">${s.categories??0}</div>
+      </div>
+    </div>
+
+    <div class="grid">
+
+      <div class="panel">
+        <h2>Today's Competitive Changes</h2>
+
+        ${
+          todayDetailHtml() ? todayDetailHtml()
+          : `
+            <div class="empty">
+              <div style="font-size:28px;margin-bottom:8px">✓</div>
+              No significant competitive changes detected today.
+            </div>
+          `
+        }
+      </div>
+
+      <div class="panel">
+        <h2>Monitoring Summary</h2>
+
+        <div class="ms-grid">
+          <div class="ms-tile ms-green" onclick="goPage('scans')">
+            <div class="ms-ico">✅</div>
+            <div class="ms-num">${successfulScans}</div>
+            <div class="ms-lbl">Successful Scans</div>
+            <div class="ms-sub">of ${todayScans.length} scans today</div>
+          </div>
+          <div class="ms-tile ms-blue" onclick="goPage('changes')">
+            <div class="ms-ico">🌟</div>
+            <div class="ms-num">${newToday}</div>
+            <div class="ms-lbl">New Content</div>
+            <div class="ms-sub">added today</div>
+          </div>
+          <div class="ms-tile ms-amber" onclick="goPage('changes')">
+            <div class="ms-ico">📝</div>
+            <div class="ms-num">${state.todayChanges ? state.todayChanges.modified.length : modifiedToday}</div>
+            <div class="ms-lbl">Modified Content</div>
+            <div class="ms-sub">updated today</div>
+          </div>
+          <div class="ms-tile ${failedScans ? 'ms-red' : 'ms-green'}" onclick="goPage('alerts')">
+            <div class="ms-ico">${failedScans ? '⚠️' : '🛡️'}</div>
+            <div class="ms-num">${failedScans}</div>
+            <div class="ms-lbl">Failed Scans</div>
+            <div class="ms-sub">${failedScans ? 'tap to see why' : 'all good'}</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Latest Scan Activity</h2>
+
+      ${
+        state.scans.slice(0,5).map(scanRow).join("")
+        || '<div class="empty">No scan activity yet.</div>'
+      }
+    </div>`;
+}
+
+function goChanges(){
+  const n = document.querySelector('.nav[data-page="changes"]');
+  if(n) n.click();
+}
+
+function todayDetailHtml(){
+  const t = state.todayChanges || {new:[],modified:[]};
+  const entries = [];
+  (t.modified||[]).filter(x=>x.note).forEach(x=>entries.push({k:"mod",x}));
+  (t.new||[]).forEach(x=>entries.push({k:"new",x}));
+  (t.modified||[]).filter(x=>!x.note).forEach(x=>entries.push({k:"plain",x}));
+  const total = entries.length;
+  if(!total) return "";
+  const LIMIT = 10;
+  const shown = entries.slice(0, LIMIT);
+
+  const byComp = {};
+  shown.forEach(e=>{ (byComp[e.x.competitor_id] = byComp[e.x.competitor_id] || []).push(e); });
+
+  const chips = (note)=>String(note||"").split(" | ").map(p=>{
+    const s = p.trim();
+    if(!s) return "";
+    const cls = s.startsWith("➖") ? "tc-rem" : "tc-add";
+    const text = s.replace("➕ ","+ ").replace("➖ ","− ");
+    return `<span class="tc-chip ${cls}">${esc(text)}</span>`;
+  }).join("");
+
+  const row = (e)=>{
+    const x = e.x;
+    const color = e.k==="new" ? "#16a34a" : e.k==="mod" ? "#d97706" : "#98a2b3";
+    const tag = e.k==="new" ? `<span class="badge green" style="margin-left:8px">NEW</span>` : `<span class="badge yellow" style="margin-left:8px">UPDATED</span>`;
+    const detail = e.k==="mod" ? `<div>${chips(x.note)}</div>` : e.k==="plain" ? `<div class="sub" style="margin-top:3px">Content updated</div>` : "";
+    return `
+      <div class="tc-item">
+        <span class="tc-dot" style="background:${color}"></span>
+        <div style="flex:1;min-width:0">
+          <a class="tc-title" href="${esc(x.url||"#")}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>
+          <span class="tc-type">${esc(x.category||"")}</span>${tag}
+          ${detail}
+        </div>
+        <a class="tc-open" href="${esc(x.url||"#")}" target="_blank" rel="noopener noreferrer">Open ↗</a>
+      </div>`;
+  };
+
+  const cards = Object.keys(byComp).map(id=>{
+    const comp = competitorById(id);
+    const list = byComp[id];
+    const name = comp?.name || "Unknown Competitor";
+    const category = categoryById(comp?.category_id) || "Uncategorized";
+    const nNew = list.filter(e=>e.k==="new").length;
+    const nUpd = list.length - nNew;
+    return `
+      <details class="tc-card" open>
+        <summary>
+          <div class="tc-avatar">${esc(name.charAt(0).toUpperCase())}</div>
+          <div>
+            <div class="tc-name">${esc(name)}</div>
+            <div class="sub" style="margin:2px 0 0">${esc(category)}</div>
+          </div>
+          <div class="tc-pills">
+            ${nNew ? `<span class="badge green">🌟 ${nNew} new</span>` : ""}
+            ${nUpd ? `<span class="badge yellow">📝 ${nUpd} updated</span>` : ""}
+          </div>
+        </summary>
+        <div class="tc-body">${list.map(row).join("")}</div>
+      </details>`;
+  }).join("");
+
+  const footer = `
+    <div class="tc-footer">
+      <span>${total > LIMIT ? `Showing ${LIMIT} of ${total} changes today` : `${total} change${total>1?"s":""} today`}</span>
+      <button class="btn secondary" style="padding:7px 12px" onclick="goChanges()">${total > LIMIT ? "View all in Changes →" : "Open Changes page →"}</button>
+    </div>`;
+
+  return cards + footer;
+}
+
+function goPage(p){
+  const n = document.querySelector('.nav[data-page="' + p + '"]');
+  if(n) n.click();
+}
+
+function changeCard(x){
+  const comp = competitorById(x.competitor_id);
+  const name = comp?.name || "Unknown Competitor";
+  const category = categoryById(comp?.category_id) || "Uncategorized";
+  const changedCourse = (state.courses || []).find(c =>
+    String(c.competitor_id) === String(x.competitor_id)
+  );
+  const _d = x.change_details || {};
+  const _first = (_d.new || [])[0] || (_d.modified || [])[0];
+  const contentUrl = _first?.url || changedCourse?.course_url || "#";
+
+  const added = Number(x.new_courses_added || 0);
+  const modified = modCount(x);
+
+  let summary = "";
+
+  if(added && modified){
+    summary = `${added} new content item${added>1?"s":""} and ${modified} existing item${modified>1?"s were":" was"} modified.`;
+  }else if(added){
+    summary = `${added} new training/content item${added>1?"s were":" was"} detected.`;
+  }else if(modified){
+    summary = `${modified} existing content item${modified>1?"s were":" was"} updated.`;
+  }
+
+  return `
+    <div class="row" style="align-items:flex-start">
+
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px">
+          <b>${esc(name)}</b>
+          <span class="badge">${esc(category)}</span>
+        </div>
+
+        <div class="sub" style="margin-top:7px">
+          ${esc(summary)}
+        </div>
+
+        <div class="sub" style="margin-top:5px">
+          ${esc(formatDate(x.created_at || x.executed_at))}
+        </div>
+      </div>
+
+      <div>
+        <a
+          href="${esc(contentUrl)}"
+          target="_blank"
+          rel="noopener noreferrer"
+          style="color:#4f46e5;font-weight:700;text-decoration:none;white-space:nowrap"
+        >
+          View Content →
+        </a>
+      </div>
+
+    </div>`;
+}
+
+function changeRow(x){
+  const comp = competitorById(x.competitor_id);
+  const name = comp?.name || x.competitor_name || "Unknown Competitor";
+  const category = categoryById(comp?.category_id);
+  const d = x.change_details || {};
+  const newItems = d.new || [];
+  const added = Number(x.new_courses_added || 0);
+  const modified = modCount(x);
+
+  const list = (items) => `<ul style="margin:6px 0 0;padding-left:18px">` +
+    items.slice(0,30).map(i=>`<li style="margin:3px 0"><b>${esc(i.title)}</b>
+      <span class="sub">[${esc(i.category||"")}]</span>
+      <a href="${esc(i.url||"#")}" target="_blank" rel="noopener noreferrer">Open</a></li>`).join("") +
+    (items.length>30 ? `<li class="sub">+${items.length-30} more</li>` : "") + `</ul>`;
+
+  return `<div class="row" style="align-items:flex-start">
+    <div style="flex:1">
+      <b>${esc(name)}</b>
+      <div class="sub">${esc(category || "Uncategorized")} · ${formatDate(x.created_at || x.executed_at)}</div>
+      ${newItems.length ? `<div style="margin-top:8px"><span class="badge green">NEW</span>${list(newItems)}</div>` : ""}
+    </div>
+    <div>
+      ${added ? `<span class="badge green">${added} New</span>` : ""}
+      ${modified ? `<span class="badge yellow">${modified} Modified</span>` : ""}
+    </div>
+  </div>`;
+}
+
+function updateRow(x){
+  const comp = competitorById(x.competitor_id);
+  const hist = x.history || [];
+  const clean = (h)=>String(h).replace(/^•\s+/,"");
+  const latest = hist[0] ? clean(hist[0]) : "Content updated (no detailed note for this competitor)";
+  return `<div class="row" style="align-items:flex-start">
+    <div style="flex:1">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <b>${esc(comp?.name||"Unknown Competitor")}</b>
+        <span class="badge">${esc(x.category||"")}</span>
+        <span class="badge yellow">UPDATED</span>
+      </div>
+      <div style="margin-top:6px"><b>${esc(x.title)}</b></div>
+      <div class="sub" style="margin-top:6px;color:#92400e">${esc(latest)}</div>
+      ${hist.length>1 ? `<details style="margin-top:6px"><summary class="sub" style="cursor:pointer">Earlier changes (${hist.length-1})</summary>
+        <ul style="margin:6px 0 0;padding-left:18px">${hist.slice(1).map(h=>`<li class="sub">${esc(clean(h))}</li>`).join("")}</ul></details>` : ""}
+      <div class="sub" style="margin-top:6px">${esc(formatDate(x.last_modified_at))}</div>
+    </div>
+    <a href="${esc(x.course_url||"#")}" target="_blank" rel="noopener noreferrer" style="font-weight:700;text-decoration:none;white-space:nowrap">Open →</a>
+  </div>`;
+}
+
+function scanRow(x){
+  const comp = competitorById(x.competitor_id);
+  const name = comp?.name || "Unknown Competitor";
+  const category = categoryById(comp?.category_id);
+
+  return `<div class="row">
+    <div>
+      <b>${esc(name)}</b>
+      <div class="sub">${esc(category || "Uncategorized")} · ${formatDate(x.created_at || x.executed_at)}</div>
+    </div>
+    <span class="badge ${String(x.status).toUpperCase()==="SUCCESS"?"green":"red"}">
+      ${esc(x.status || "UNKNOWN")}
+    </span>
+  </div>`;
+}
+
+function competitorById(id){
+  return state.competitors.find(c => String(c.id) === String(id));
+}
+
+function categoryById(id){
+  if(!id) return "";
+  const c = state.categories.find(x => String(x.id) === String(id));
+  return c ? c.name : "";
+}
+
+function formatDate(value){
+  if(!value) return "—";
+  const d = new Date(value);
+  if(Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString("en-IN", {
+    day:"2-digit",
+    month:"short",
+    year:"numeric",
+    hour:"2-digit",
+    minute:"2-digit"
+  });
+}
+
+function isToday(value){
+  if(!value) return false;
+  const d = new Date(value);
+  const now = new Date();
+
+  return d.getFullYear() === now.getFullYear() &&
+         d.getMonth() === now.getMonth() &&
+         d.getDate() === now.getDate();
+}
+
+function competitors(){
+  document.getElementById("app").innerHTML=`
+    <div class="panel">
+      <div class="toolbar">
+        <input id="compSearch" placeholder="Search competitors..." oninput="filterCompetitors()">
+        <select id="compCat" onchange="filterCompetitors()"><option value="">All Categories</option>${state.categories.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join("")}</select>
+        <button class="btn primary" onclick="openModal()">+ Add Competitor</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Competitor</th><th>Category</th><th>Website</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody id="compBody"></tbody>
+      </table></div>
+    </div>`;
+  filterCompetitors();
+}
+
+function filterCompetitors(){
+  const q=(document.getElementById("compSearch")?.value||"").toLowerCase();
+  const cat=document.getElementById("compCat")?.value||"";
+  const list=state.competitors.filter(c=>{
+    const category = categoryById(c.category_id) || c.category || c.category_name || "";
+    return (!q||String(c.name).toLowerCase().includes(q)) &&
+           (!cat||category.toLowerCase()===cat.toLowerCase());
+  });
+
+  document.getElementById("compBody").innerHTML=list.map(c=>`
+    <tr>
+      <td><b>${esc(c.name)}</b></td>
+      <td>${esc(categoryById(c.category_id) || c.category || c.category_name || "Uncategorized")}</td>
+      <td><a href="${esc(c.base_url||c.website||"#")}" target="_blank">${esc(c.base_url||c.website||"—")}</a></td>
+      <td><span class="badge green">Active</span></td>
+      <td><button class="btn secondary" data-competitor-id="${esc(c.id)}" onclick="scanCompetitorById(this)">Scan</button>${c.auto_detected ? ` <button class="btn danger" data-competitor-id="${esc(c.id)}" onclick="deleteCompetitorById(this)">Delete</button>` : ""}</td>
+    </tr>`).join("")||`<tr><td colspan="5" class="empty">No competitors found.</td></tr>`;
+}
+
+async function scanCompetitorById(button){
+  const id = button.dataset.competitorId;
+  const competitor = state.competitors.find(c => c.id === id);
+
+  if(!competitor){
+    toast("❌ Competitor not found");
+    return;
+  }
+
+  await scanOne(competitor.name);
+}
+
+async function resetCompetitorById(button){
+  const id = button.dataset.competitorId;
+  const competitor = state.competitors.find(c => String(c.id) === String(id));
+  if(!competitor){ toast("❌ Competitor not found"); return; }
+  if(!confirm("Delete ALL tracked content of "+competitor.name+" and scan it again from scratch?")) return;
+  try{
+    await api("/api/competitors/"+id+"/reset",{method:"POST"});
+    toast("🧹 "+competitor.name+" content cleared");
+    await loadAll();
+    await scanOne(competitor.name);
+  }catch(e){ toast("❌ "+e.message); }
+}
+
+async function deleteCompetitorById(button){
+  const id = button.dataset.competitorId;
+  const competitor = state.competitors.find(c => String(c.id) === String(id));
+  if(!competitor){ toast("❌ Competitor not found"); return; }
+  if(!confirm("DELETE "+competitor.name+"?\n\nThis permanently removes the competitor and ALL its tracked content and scan history.")) return;
+  try{
+    await api("/api/competitors/"+encodeURIComponent(id),{method:"DELETE"});
+    toast("🗑️ "+competitor.name+" deleted");
+    await loadAll();
+  }catch(e){ toast("❌ "+e.message); }
+}
+
+async function scanOne(name){
+  const slug=name.toLowerCase().replace(/[^a-z0-9]/g,"");
+  window.__scanning=window.__scanning||{};
+  if(window.__scanning[name]){toast("⏳ "+name+" scan is already running");return}
+  if(!confirm("Run scan for "+name+"?"))return;
+  window.__scanning[name]=true;
+
+  toast("⏳ Scanning "+name+"... Please wait.");
+
+  let finished = false;
+
+  const poll = setInterval(async()=>{
+    if(finished)return;
+    try{
+      const s = await api("/api/scan-runs?_="+Date.now());
+      state.scans = s.scanRuns || [];
+
+      if(document.querySelector("#app h2")?.textContent === "Scan Runs"){
+        scans();
+      }
+    }catch(_){}
+  },1500);
+
+  try{
+    const d=await api("/api/scrape/"+slug+"?_="+Date.now(),{method:"POST"});
+
+    finished=true;
+    window.__scanning[name]=false;
+    clearInterval(poll);
+
+    const found =
+      Number(d.totalCoursesFound ?? d.courses_found ?? 0);
+
+    const newCount =
+      Array.isArray(d.newCourses)
+        ? d.newCourses.length
+        : Number(d.new_courses_added ?? 0);
+
+    const changedCount =
+      Array.isArray(d.modifiedCourses)
+        ? d.modifiedCourses.length
+        : Number(d.modified_courses ?? 0);
+
+    const status=String(d.status||"SUCCESS").toUpperCase();
+
+    toast(
+      status==="SUCCESS"
+        ? `✅ ${name}: Scan SUCCESS • Found ${found} • New ${newCount} • Changed ${changedCount}${d.firstScan ? " • baseline saved (changes show from next scan)" : ""}`
+        : `❌ ${name}: Scan ${status}${d.error ? " — " + d.error : ""}`
+    );
+
+    await loadAll();
+
+  }catch(e){
+    finished=true;
+    window.__scanning[name]=false;
+    clearInterval(poll);
+
+    toast("❌ "+name+" scan failed: "+e.message);
+    await loadAll();
+  }
+}
+
+function content(){
+  document.getElementById("app").innerHTML=`
+  <div class="panel">
+    <div class="toolbar">
+      <input id="contentSearch" placeholder="Search tracked content..." oninput="filterContent()">
+    </div>
+    <div id="contentGroups"></div>
+  </div>`;
+  filterContent();
+}
+
+function isRecent(v,days){
+  if(!v) return false;
+  const d=new Date(v);
+  return !Number.isNaN(d.getTime()) && (Date.now()-d.getTime()) < (days||7)*86400000;
+}
+
+function filterContent(){
+  const q=(document.getElementById("contentSearch")?.value||"").toLowerCase();
+
+  const list=state.courses.filter(x =>
+    (x.title||"").toLowerCase().includes(q)
+  );
+
+  const groups={};
+  list.forEach(x=>{
+    const comp=competitorById(x.competitor_id);
+    const name=comp?.name || "Unknown Competitor";
+    if(!groups[name]) groups[name]=[];
+    groups[name].push(x);
+  });
+
+  const html=Object.entries(groups).map(([name,items])=>`
+    <div class="panel" style="margin-bottom:20px">
+      <h2 style="margin-bottom:16px">${esc(name)} <span class="sub">(${items.length})</span></h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Title</th><th>Type</th><th>Details</th><th>URL</th><th>Last Seen</th></tr>
+          </thead>
+          <tbody>
+            ${items.map(x=>`
+              <tr>
+                <td><b>${esc(x.title)}</b>${isRecent(x.last_modified_at,7) ? ' <span class="badge yellow">UPDATED</span>' : ''}</td>
+                <td>${esc(x.category||"—")}</td>
+                <td><button class="btn secondary" style="padding:5px 10px"
+                    onclick="showCourseDetail('${esc(x.id)}',this)">Details</button></td>
+                <td><a href="${esc(x.course_url||x.url||"#")}" target="_blank" rel="noopener noreferrer">Open</a></td>
+                <td>${esc(formatDate(x.last_seen_at||x.last_modified_at))}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `).join("");
+
+  document.getElementById("contentGroups").innerHTML=html ||
+    `<div class="empty">No tracked content found.</div>`;
+}
+
+async function showCourseDetail(id, btn){
+  const tr = btn.closest("tr");
+  const next = tr.nextElementSibling;
+  if(next && next.classList.contains("detail-row")){ next.remove(); return; }
+  btn.textContent="…";
+  try{
+    const r = await api("/api/courses/"+encodeURIComponent(id));
+    const desc = String(r.course?.description || "");
+    const MARK = "📝 Change history (latest first):";
+    const i = desc.indexOf(MARK);
+    const block = (i<0 ? desc : desc.slice(0,i)).trim();
+    const hist = i<0 ? [] : desc.slice(i+MARK.length).split("\n").map(s=>s.trim()).filter(Boolean);
+    const lines = block.split("\n");
+    const names = lines.map(l=>l.match(/^\d+\.\s+(.+)$/)).filter(Boolean).map(m=>m[1]);
+
+    let body = "";
+    if(names.length){
+      body += `<div style="font-weight:700;margin-bottom:10px">${esc(lines[0])}</div>
+        <ol style="margin:0;padding-left:24px;columns:2;column-gap:36px;line-height:1.75">
+          ${names.map(n=>`<li>${esc(n)}</li>`).join("")}
+        </ol>`;
+    }else{
+      body += `<pre style="white-space:pre-wrap;margin:0;font:inherit;color:#475467">${esc(block || "No extra details captured for this item.")}</pre>`;
+    }
+    if(hist.length){
+      body += `<div style="margin-top:16px;padding:12px 16px;background:#fef3c7;border-radius:10px">
+        <b style="color:#a16207">📝 What changed</b>
+        <ul style="margin:8px 0 0;padding-left:18px">
+          ${hist.map(h=>`<li style="margin:4px 0">${esc(h.replace(/^•\s+/,""))}</li>`).join("")}
+        </ul></div>`;
+    }
+
+    const row = document.createElement("tr");
+    row.className = "detail-row";
+    row.innerHTML = `<td colspan="5" style="background:#fafbff;padding:18px 20px">${body}</td>`;
+    tr.after(row);
+  }catch(e){ toast("❌ "+e.message); }
+  btn.textContent="Details";
+}
+
+function scans(){
+  document.getElementById("app").innerHTML=`
+  <div class="panel">
+    <h2>Scan Runs</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Competitor</th>
+            <th>Category</th>
+            <th>Status</th>
+            <th>Found</th>
+            <th>New</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${
+            state.scans.map(x=>{
+              const comp=competitorById(x.competitor_id);
+              const name=comp?.name||"Unknown";
+              const category=categoryById(comp?.category_id)||"Uncategorized";
+
+              return `
+              <tr>
+                <td>${esc(formatDate(x.created_at||x.executed_at))}</td>
+                <td><b>${esc(name)}</b></td>
+                <td>${esc(category)}</td>
+                <td>
+                  <span class="badge ${String(x.status).toUpperCase()==="SUCCESS"?"green":"red"}">
+                    ${esc(x.status||"—")}
+                  </span>
+                </td>
+                <td>${esc(x.courses_found??0)}</td>
+                <td>
+                  ${
+                    Number(x.new_courses_added||0)>0
+                    ? `<span class="badge green">${x.new_courses_added}</span>`
+                    : "0"
+                  }
+                </td>
+              </tr>`;
+            }).join("")
+            ||
+            `<tr><td colspan="6" class="empty">No scan runs.</td></tr>`
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function changes(){
+  const t = state.todayChanges || {new:[],modified:[]};
+  const newToday = t.new || [];
+  const upd = state.contentChanges || [];
+  const realChanges = state.changes.filter(x =>
+    Number(x.new_courses_added || 0) > 0 || modCount(x) > 0
+  );
+
+  const newRow = (x)=>{
+    const comp = competitorById(x.competitor_id);
+    return `<div class="row" style="align-items:flex-start">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <b>${esc(comp?.name||"Unknown Competitor")}</b>
+          <span class="badge green">NEW</span>
+          <span class="badge">${esc(x.category||"")}</span>
+        </div>
+        <div style="margin-top:6px"><b>${esc(x.title)}</b></div>
+      </div>
+      <a href="${esc(x.url||"#")}" target="_blank" rel="noopener noreferrer" style="font-weight:700;text-decoration:none;white-space:nowrap">Open →</a>
+    </div>`;
+  };
+
+  document.getElementById("app").innerHTML=`
+  ${newToday.length ? `<div class="panel">
+    <h2>New content today (${newToday.length})</h2>
+    ${newToday.map(newRow).join("")}
+  </div>` : ""}
+
+  <div class="panel">
+    <h2>Updated Content — what changed</h2>
+    ${
+      upd.length
+      ? upd.map(updateRow).join("")
+      : `<div class="empty">
+           <div style="font-size:28px;margin-bottom:8px">✓</div>
+           No updates detected yet. Changes appear here after the second scan of a competitor.
+         </div>`
+    }
+  </div>
+
+  <div class="panel">
+    <h2>New content per scan</h2>
+    ${
+      realChanges.length
+      ? realChanges.map(changeRow).join("")
+      : `<div class="empty">No new content detected.</div>`
+    }
+  </div>`;
+}
+
+function alerts(){
+  const failed=state.scans.filter(
+    x=>String(x.status).toUpperCase()==="FAILED"
+  );
+
+  const newContent=state.scans.filter(
+    x=>Number(x.new_courses_added||0)>0
+  );
+
+  document.getElementById("app").innerHTML=`
+  <div class="panel">
+    <h2>Alerts & Intelligence</h2>
+
+    ${
+      failed.map(x=>{
+        const comp=competitorById(x.competitor_id);
+        return `
+        <div class="row">
+          <div>
+            <b>${esc(comp?.name||"Unknown Competitor")}</b>
+            <div class="sub">${esc(x.error_message||"Scan failed")}</div>
+          </div>
+          <span class="badge red">FAILED</span>
+        </div>`;
+      }).join("")
+    }
+
+    ${
+      newContent.map(x=>{
+        const comp=competitorById(x.competitor_id);
+        const category=categoryById(comp?.category_id);
+
+        return `
+        <div class="row">
+          <div>
+            <b>${esc(comp?.name||"Unknown Competitor")}</b>
+            <div class="sub">
+              ${esc(category||"Uncategorized")} ·
+              ${x.new_courses_added} new content detected ·
+              ${esc(formatDate(x.created_at||x.executed_at))}
+            </div>
+          </div>
+          <span class="badge green">NEW CONTENT</span>
+        </div>`;
+      }).join("")
+    }
+
+    ${
+      !failed.length && !newContent.length
+      ? `<div class="empty">
+           No active alerts or newly detected content.
+         </div>`
+      : ""
+    }
+  </div>`;
+}
+
+function categories(){
+  document.getElementById("app").innerHTML=`
+  <div class="panel"><h2>Categories</h2>
+  <div class="table-wrap"><table><thead><tr><th>Category</th><th>Schedule Day</th><th>Status</th></tr></thead>
+  <tbody>${state.categories.map(c=>`
+  <tr><td><b>${esc(c.name)}</b></td><td>${esc(c.schedule_day||"—")}</td><td><span class="badge green">Active</span></td></tr>`).join("")||
+  '<tr><td colspan="3" class="empty">No categories.</td></tr>'}</tbody></table></div></div>`;
+}
+
+function settings(){
+  document.getElementById("app").innerHTML=`
+  <div class="panel"><h2>Settings</h2>
+  <div class="row"><span>Database</span><span class="badge green">Supabase Connected</span></div>
+  <div class="row"><span>Automatic startup scraping</span><span class="badge green">Disabled</span></div>
+  <div class="row"><span>Master Scan</span><span>Manual</span></div>
+  <div class="row"><span>Monitoring</span><span>Enabled</span></div>
+  </div>`;
+}
+
+function openModal(){
+  document.getElementById("newCategory").innerHTML=
+    '<option value="">Select category</option>'+
+    state.categories.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("");
+  document.getElementById("modal").style.display="flex";
+}
+
+function closeModal(){document.getElementById("modal").style.display="none"}
+
+async function addCompetitor(){
+  const name=document.getElementById("newName").value.trim();
+  const url=document.getElementById("newUrl").value.trim();
+  const category_id=document.getElementById("newCategory").value||null;
+
+  if(!name||!url||!category_id){toast("❌ Name, URL and Category are required");return}
+
+  try{
+    await api("/api/competitors",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name,base_url:url,category_id})
+    });
+    closeModal();
+    document.getElementById("newName").value="";
+    document.getElementById("newUrl").value="";
+    toast("✅ Competitor added — press Scan to start the first scan");
+    await loadAll();
+  }catch(e){toast("❌ "+e.message)}
+}
+
+async function masterScan(){
+  if(!confirm("Run the Master Scan now? This can take some time."))return;
+
+  toast("⏳ Master Scan started. Please keep this page open.");
+
+  try{
+    const r=await api("/api/scrape/all?_="+Date.now(),{method:"POST"});
+    toast("✅ Master Scan completed");
+    await loadAll();
+  }catch(e){
+    toast("❌ Master Scan failed: "+e.message);
+  }
+}
+
+document.querySelectorAll(".nav").forEach(n=>{
+  n.addEventListener("click",()=>{
+    document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));
+    n.classList.add("active");
+    renderPage(n.dataset.page);
+    try{ history.replaceState(null,"","#"+n.dataset.page); localStorage.setItem("radarPage",n.dataset.page); }catch(_){}
+  });
+});
+
+// refresh-v2
+let lastRefreshAt = Date.now();
+function fmtTime(d){ return d.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}); }
+function setUpdated(){
+  lastRefreshAt = Date.now();
+  const lu = document.getElementById("lastUpdated");
+  if(lu) lu.textContent = "Updated " + fmtTime(new Date());
+}
+function refreshIsBusy(){
+  const modal = document.getElementById("modal");
+  if(modal && modal.style.display === "flex") return true;
+  const a = document.activeElement;
+  if(a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) return true;
+  if(document.querySelector("#app .detail-row")) return true;
+  if(window.__scanning && Object.values(window.__scanning).some(Boolean)) return true;
+  return false;
+}
+async function refreshNow(manual){
+  const btn = document.getElementById("refreshBtn");
+  const keep = {};
+  ["contentSearch","compSearch","compCat"].forEach(id=>{ const el = document.getElementById(id); if(el) keep[id] = el.value; });
+  if(manual && btn){ btn.disabled = true; btn.textContent = "↻ Refreshing…"; }
+  try{
+    const ok = await loadAll();
+    Object.entries(keep).forEach(([id,v])=>{ const el = document.getElementById(id); if(el) el.value = v; });
+    if(document.getElementById("contentSearch") && typeof filterContent === "function") filterContent();
+    if(document.getElementById("compBody") && typeof filterCompetitors === "function") filterCompetitors();
+    if(ok !== false){ setUpdated(); if(manual) toast("✅ Data refreshed"); }
+  } finally {
+    if(manual && btn){ btn.disabled = false; btn.textContent = "↻ Refresh"; }
+  }
+}
+setInterval(()=>{ if(!document.hidden && !refreshIsBusy()) refreshNow(false); }, 60000);
+document.addEventListener("visibilitychange", ()=>{
+  if(!document.hidden && Date.now() - lastRefreshAt > 60000 && !refreshIsBusy()) refreshNow(false);
+});
+
+(function restorePage(){
+  let p = "";
+  try{ p = (location.hash || "").slice(1) || localStorage.getItem("radarPage") || ""; }catch(_){}
+  const n = document.querySelector('.nav[data-page="' + p + '"]');
+  if(n){
+    document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));
+    n.classList.add("active");
+  }
+})();
+
+loadAll().then(setUpdated);
+</script>
+</body>
+</html>

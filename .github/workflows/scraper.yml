@@ -1,0 +1,78 @@
+name: Competitor Radar Weekly Scan
+
+on:
+  schedule:
+    # Sunday 18:30 UTC (12:00 AM IST Monday): full weekly scan of every
+    # competitor, one combined email to the team.
+    - cron: '35 18 * * 0'
+    # One cron per weekday (Mon-Fri), each 18:30 UTC (12:00 AM IST next day):
+    # scan only that day's assigned categories and post a summary to Google
+    # Chat. Deliberately 5 separate entries (not one '1-5' range) so the
+    # intended weekday can be read off github.event.schedule below, instead
+    # of trusting the runner's clock at execution time - GitHub's scheduler
+    # can delay a run by hours, which would otherwise make it compute the
+    # wrong day if it happened to cross UTC midnight.
+    - cron: '35 18 * * 1'
+    - cron: '35 18 * * 2'
+    - cron: '35 18 * * 3'
+    - cron: '35 18 * * 4'
+    - cron: '35 18 * * 5'
+  workflow_dispatch: # This adds a manual "Run Workflow" button in the GitHub UI!
+    inputs:
+      mode:
+        description: 'Which mode should this manual run use?'
+        type: choice
+        default: daily-chat
+        options:
+          - daily-chat
+          - weekly-email
+      day:
+        description: 'For daily-chat mode: which weekday to simulate (auto = actual current day)'
+        type: choice
+        default: auto
+        options:
+          - auto
+          - monday
+          - tuesday
+          - wednesday
+          - thursday
+          - friday
+
+jobs:
+  run-radar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install NPM Dependencies
+        run: npm install
+
+      - name: Install Playwright Browsers (Chromium)
+        run: npx playwright install chromium --with-deps
+
+      - name: Execute Competitor Radar Scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          SMTP_EMAIL: ${{ secrets.SMTP_EMAIL }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+          GCHAT_WEBHOOK_URL: ${{ secrets.GCHAT_WEBHOOK_URL }}
+          # A manual workflow_dispatch run uses whichever mode is picked in
+          # the UI (defaults to daily-chat). Any of the Mon-Fri crons means
+          # daily-chat; the Sunday cron means weekly-email.
+          RADAR_MODE: ${{ github.event.inputs.mode || (github.event.schedule == '35 18 * * 0' && 'weekly-email' || 'daily-chat') }}
+          # ISO weekday (1=Mon..5=Fri) the run is FOR, fixed by which cron
+          # fired it - not by whatever the wall clock says once the runner
+          # actually starts, which GitHub's scheduler can delay by hours.
+          # Manual runs pass the chosen day name straight through (or blank
+          # for 'auto', which falls back to the real current day in code).
+          RADAR_DAY: ${{ github.event.schedule == '35 18 * * 1' && '1' || github.event.schedule == '35 18 * * 2' && '2' || github.event.schedule == '35 18 * * 3' && '3' || github.event.schedule == '35 18 * * 4' && '4' || github.event.schedule == '35 18 * * 5' && '5' || github.event.inputs.day }}
+        run: node server.js
