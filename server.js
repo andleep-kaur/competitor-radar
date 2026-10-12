@@ -32,6 +32,7 @@ const transporter = nodemailer.createTransport({
 
 // --- COMBINED EMAIL FUNCTION ---
 async function sendCombinedAlertEmail(resultsArray) {
+  if (process.env.EMAIL_ENABLED !== '1') { console.log('ℹ️ Email alerts are disabled (Google Chat only).'); return; }
   let emailHtml = `<h2>🚨 Competitor Radar Update</h2><p>A system scan has completed. Here are the latest changes across your monitored competitors.</p>`;
   let hasActualChanges = false;
 
@@ -2159,14 +2160,14 @@ async function scrapeGeneric(comp, scanLogId = null) {
 async function runMasterScanPipeline() {
   console.log('⚙️ Initializing Master Scan Pipeline...');
 
-  const psResult = await scrapePluralsight();
-  const ltResult = await scrapeLearningTree();
-  const dcResult = await scrapeDatacouch();
-  const stResult = await scrapeSonatype();
-  const trResult = await scrapeTrainocate();
-  const gaResult = await scrapeGeneralAssembly();
-  const ctResult = await scrapeCloudThat();
-  const ncResult = await scrapeNetcomLearning();
+  const psResult = await guardedScan('Pluralsight', scrapePluralsight);
+  const ltResult = await guardedScan('Learning Tree', scrapeLearningTree);
+  const dcResult = await guardedScan('Datacouch', scrapeDatacouch);
+  const stResult = await guardedScan('Sonatype', scrapeSonatype);
+  const trResult = await guardedScan('Trainocate', scrapeTrainocate);
+  const gaResult = await guardedScan('General Assembly', scrapeGeneralAssembly);
+  const ctResult = await guardedScan('CloudThat', scrapeCloudThat);
+  const ncResult = await guardedScan('NetCom Learning', scrapeNetcomLearning);
 
   const combinedResults = [
     { competitor: 'Pluralsight', data: psResult },
@@ -2186,7 +2187,10 @@ async function runMasterScanPipeline() {
     .eq('status', 'active');
 
   for (const comp of (genericCompetitors || [])) {
-    const result = await scrapeGeneric(comp);
+    const claim = await claimScan(comp);
+    const result = claim.ok
+      ? await (async () => { try { return await scrapeGeneric(comp); } finally { await releaseScan(claim); } })()
+      : { status: 'SKIPPED', totalCoursesFound: 0, newCourses: [], modifiedCourses: [] };
     combinedResults.push({ competitor: comp.name, data: result });
   }
 
@@ -2312,7 +2316,64 @@ function resolveIsoDay(override) {
   return jsDay === 0 ? 7 : jsDay; // 1=Mon..7=Sun
 }
 
-// daily scan v2
+// ---- duplicate-run guard: only for SCHEDULED GitHub runs (manual runs and the dashboard always scan) ----
+const DUPLICATE_GUARD_HOURS = 3;
+
+async function claimScan(comp) {
+  if (process.env.GITHUB_EVENT_NAME !== 'schedule') return { ok: true, id: null };
+  try {
+    const since = new Date(Date.now() - DUPLICATE_GUARD_HOURS * 3600 * 1000).toISOString();
+    const done = await supabase.from('sync_logs').select('id').eq('competitor_id', comp.id).eq('status', 'SUCCESS').gt('courses_found', 0).gte('created_at', since).limit(1);
+    if (done.data && done.data.length) return { ok: false, why: `already scanned in the last ${DUPLICATE_GUARD_HOURS} hours` };
+
+    const mine = await supabase.from('sync_logs')
+      .insert({ competitor_id: comp.id, status: 'RUNNING', courses_found: 0, new_courses_added: 0 })
+      .select('id, created_at').single();
+    if (mine.error || !mine.data) return { ok: true, id: null };      // cannot lock: scan anyway
+
+    // if two runs started together, the OLDEST marker wins, the other one steps aside
+    const running = await supabase.from('sync_logs').select('id, created_at')
+      .eq('competitor_id', comp.id).eq('status', 'RUNNING').gte('created_at', since)
+      .order('created_at', { ascending: true }).order('id', { ascending: true });
+    const first = running.data && running.data[0];
+    if (first && first.id !== mine.data.id) {
+      await supabase.from('sync_logs').delete().eq('id', mine.data.id);
+      return { ok: false, why: 'another run is scanning it right now' };
+    }
+    // the other run may have finished between my first check and my marker: look once more
+    const again = await supabase.from('sync_logs').select('id').eq('competitor_id', comp.id).eq('status', 'SUCCESS').gt('courses_found', 0).gte('created_at', since).limit(1);
+    if (again.data && again.data.length) {
+      await supabase.from('sync_logs').delete().eq('id', mine.data.id);
+      return { ok: false, why: `already scanned in the last ${DUPLICATE_GUARD_HOURS} hours` };
+    }
+    return { ok: true, id: mine.data.id };
+  } catch (_) {
+    return { ok: true, id: null };
+  }
+}
+
+async function releaseScan(claim) {
+  if (!claim || !claim.id) return;
+  try { await supabase.from('sync_logs').delete().eq('id', claim.id); } catch (_) {}
+}
+
+// used by the weekly full scan (built-in scrapers look their row up by name)
+async function guardedScan(name, scraper) {
+  let comp = null;
+  try {
+    const { data } = await supabase.from('competitors').select('id, name').eq('name', name).limit(1);
+    comp = data && data[0];
+  } catch (_) {}
+  if (!comp) return await scraper();
+  const claim = await claimScan(comp);
+  if (!claim.ok) {
+    console.log(`⏭️ ${name}: skipped (${claim.why})`);
+    return { status: 'SKIPPED', totalCoursesFound: 0, newCourses: [], modifiedCourses: [] };
+  }
+  try { return await scraper(); } finally { await releaseScan(claim); }
+}
+
+// daily scan v3
 async function runCategoryScanForToday(dayOverride) {
   const isoDay = resolveIsoDay(dayOverride !== undefined ? dayOverride : process.env.RADAR_DAY);
   const dayName = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][isoDay] || String(isoDay);
@@ -2348,31 +2409,52 @@ async function runCategoryScanForToday(dayOverride) {
 
     const results = [];
     let newTotal = 0, modTotal = 0, baselines = 0, postedAny = false;
-    const failed = [];
+    const failed = [], skipped = [], builtIn = [], added = [];
 
     for (const comp of list) {
+      const bucket = comp.auto_detected ? added : builtIn;
+
+      const claim = await claimScan(comp);
+      if (!claim.ok) {
+        skipped.push(comp.name);
+        bucket.push(`${comp.name} ⏭️`);
+        console.log(`⏭️ ${comp.name}: skipped (${claim.why})`);
+        continue;
+      }
+
       let result;
       try {
         const hardcoded = HARDCODED_SCRAPERS[comp.name];
-        result = hardcoded ? await hardcoded() : await scrapeGeneric(comp);
+        if (hardcoded) {
+          result = (typeof runBuiltInWithNotes === 'function')
+            ? await runBuiltInWithNotes(comp, hardcoded)
+            : await hardcoded();
+        } else {
+          result = await scrapeGeneric(comp);
+        }
       } catch (e) {
         console.error(`❌ ${comp.name} crashed:`, e);
         result = { status: 'FAILED', error: String((e && e.message) || e).slice(0, 200), newCourses: [], modifiedCourses: [] };
+      } finally {
+        await releaseScan(claim);
       }
       results.push({ competitor: comp.name, data: result });
 
       if (result.status === 'FAILED') {
         failed.push({ name: comp.name, reason: result.error || 'see server log' });
+        bucket.push(`${comp.name} ⚠️`);
         continue;
       }
 
       if (result.firstScan) {
         baselines++;
         postedAny = true;
+        bucket.push(`${comp.name} 🆕`);
         await postToGoogleChat(`🚨 *Competitor Radar — ${cat.name}*\n*${comp.name}*: first scan complete, ${result.totalCoursesFound} pages saved as baseline. Changes will be reported from the next scan.`);
         continue;
       }
 
+      bucket.push(`${comp.name} ✅`);
       newTotal += (result.newCourses || []).length;
       modTotal += (result.modifiedCourses || []).length;
       for (const message of buildCompetitorChatMessages(cat.name, comp.name, result)) {
@@ -2381,12 +2463,23 @@ async function runCategoryScanForToday(dayOverride) {
       }
     }
 
+    // a second run that found everything already scanned stays silent (no duplicate Chat summary)
+    if (skipped.length === list.length) {
+      console.log(`⏭️ ${cat.name}: everything was already scanned, no Chat summary sent.`);
+      continue;
+    }
+
+    const scannedCount = list.length - skipped.length;
     const lines = [
       `📊 *Competitor Radar — ${cat.name}* (${dayName} scan)`,
-      `Scanned ${list.length} competitor${list.length === 1 ? '' : 's'}: 🌟 ${newTotal} new, 📝 ${modTotal} updated` +
+      `Scanned ${scannedCount} of ${list.length} competitor${list.length === 1 ? '' : 's'}: 🌟 ${newTotal} new, 📝 ${modTotal} updated` +
         (baselines ? `, 🆕 ${baselines} first scan${baselines === 1 ? '' : 's'}` : '') +
-        (failed.length ? `, ⚠️ ${failed.length} failed` : '')
+        (failed.length ? `, ⚠️ ${failed.length} failed` : '') +
+        (skipped.length ? `, ⏭️ ${skipped.length} already scanned` : '')
     ];
+    if (builtIn.length) lines.push(`Built-in: ${builtIn.join(', ')}`);
+    if (added.length) lines.push(`Added from dashboard: ${added.join(', ')}`);
+    lines.push('✅ scanned   🆕 first scan   ⚠️ failed   ⏭️ already scanned');
     if (!postedAny && !failed.length) lines.push('No new or modified content today.');
     failed.forEach(f => lines.push(`⚠️ ${f.name}: scan failed — ${f.reason}`));
     await postToGoogleChat(lines.join('\n'));

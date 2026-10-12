@@ -4,7 +4,6 @@ on:
   schedule:
     # Sunday 18:30 UTC (12:00 AM IST Monday): full weekly scan of every
     # competitor, one combined email to the team.
-    - cron: '35 18 * * 0'
     # One cron per weekday (Mon-Fri), each 18:30 UTC (12:00 AM IST next day):
     # scan only that day's assigned categories and post a summary to Google
     # Chat. Deliberately 5 separate entries (not one '1-5' range) so the
